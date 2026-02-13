@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int     @id @default(autoincrement())
+  email     String  @unique
+  password  String
+  firstName String
+  lastName  String
+  role      Role    @default(STUDENT)
+  departmentId Int?
+  department Department? @relation(fields: [departmentId], references: [id])
+  
+  // Relations
+  submittedTheses Thesis[] @relation("StudentSubmissions")
+  reviews Review[] @relation("ReviewerReviews")
+  comments Comment[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Department {
+  id        Int     @id @default(autoincrement())
+  name      String  @unique
+  code      String  @unique
+  description String?
+  
+  // Relations
+  users User[]
+  theses Thesis[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Thesis {
+  id        Int     @id @default(autoincrement())
+  title     String
+  abstract  String
+  topic     String
+  advisor   String
+  fileName  String
+  filePath  String
+  fileSize  Int
+  fileType  String // pdf, docx
+  
+  // Relations
+  student   User    @relation("StudentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+  studentId Int
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  departmentId Int
+  reviews   Review[]
+  comments  Comment[]
+  
+  status    ThesisStatus @default(PENDING)
+  submittedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Review {
+  id        Int     @id @default(autoincrement())
+  status    ReviewStatus
+  feedback  String?
+  score     Int? // 1-5 rating
+  
+  // Relations
+  thesis    Thesis  @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  thesisId  Int
+  reviewer  User    @relation("ReviewerReviews", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewerId Int
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id        Int     @id @default(autoincrement())
+  content   String
+  
+  // Relations
+  thesis    Thesis  @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+  thesisId  Int
+  author    User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  Int
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+  REVIEWER
+}
+
+enum ThesisStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISIONS_REQUESTED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISIONS_REQUESTED
+}
